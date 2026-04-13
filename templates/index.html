@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DBot Site Assessment</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DBot">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<style>
+  /* ── Reset & base ─────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #222; -webkit-text-size-adjust: 100%; }
+
+  /* ── App header ───────────────────────────────────────────────────────── */
+  .app-header {
+    background: #1a1a2e; color: white;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    position: sticky; top: 0; z-index: 100;
+    padding-top: calc(14px + env(safe-area-inset-top));
+  }
+  .app-header h1 { font-size: 1.1rem; font-weight: 600; }
+  .app-header .logo {
+    width: 36px; height: 36px; min-width: 36px; background: #e94560;
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-weight: 800; font-size: 1rem;
+  }
+
+  /* ── Layout container ─────────────────────────────────────────────────── */
+  .container {
+    max-width: 960px; margin: 0 auto;
+    padding: 16px 12px calc(80px + env(safe-area-inset-bottom));
+  }
+
+  /* ── Cards ────────────────────────────────────────────────────────────── */
+  .card {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 20px; overflow: hidden;
+  }
+  .card-header {
+    background: #1a1a2e; color: white;
+    padding: 12px 16px;
+    font-size: 0.95rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .card-header .tower-label { font-size: 0.8rem; opacity: 0.7; }
+  .card-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-body { padding: 16px; }
+
+  /* ── Form grids ───────────────────────────────────────────────────────── */
+  /* Mobile: all grids default to 1 column */
+  .form-grid       { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .form-grid.two   { grid-template-columns: 1fr 1fr; }
+  .form-grid.three { grid-template-columns: 1fr; }
+  .form-grid.four  { grid-template-columns: 1fr 1fr; }
+  /* span classes collapse on mobile */
+  .span2, .span3, .span4 { grid-column: span 1; }
+
+  /* ── Labels & inputs ──────────────────────────────────────────────────── */
+  label {
+    display: block; font-size: 0.75rem; font-weight: 600; color: #555;
+    margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  /* font-size 16px prevents iOS auto-zoom on focus */
+  input[type=text], input[type=date], select, textarea {
+    width: 100%; padding: 11px 12px; border: 1.5px solid #ddd;
+    border-radius: 8px; font-size: 16px; color: #222;
+    background: #fafafa; transition: border-color 0.2s;
+    font-family: inherit; -webkit-appearance: none; appearance: none;
+  }
+  input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
+    outline: none; border-color: #e94560; background: white;
+  }
+  textarea { resize: vertical; min-height: 72px; }
+
+  /* ── Section titles ───────────────────────────────────────────────────── */
+  .section-title {
+    font-size: 0.9rem; font-weight: 700; color: #1a1a2e;
+    margin: 20px 0 12px; padding-bottom: 8px;
+    border-bottom: 2px solid #e94560;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .num {
+    background: #e94560; color: white;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 800; flex-shrink: 0;
+  }
+
+  /* ── Checklist ────────────────────────────────────────────────────────── */
+  /* Mobile: each row becomes a stacked card */
+  .checklist-table { width: 100%; border-collapse: collapse; }
+  .checklist-table thead { display: none; }
+  .checklist-table tr {
+    display: block; padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .checklist-table tr:last-child { border-bottom: none; }
+  .checklist-table td {
+    display: block; width: 100% !important;
+    padding: 3px 0; border: none; vertical-align: top;
+  }
+  .checklist-table .item-col {
+    font-size: 0.9rem; font-weight: 600; color: #222;
+    padding-bottom: 8px;
+  }
+  .checklist-table .status-col { margin-bottom: 6px; }
+  .checklist-table .status-col select { max-width: 180px; }
+
+  select.status-select {
+    padding: 9px 10px; font-size: 16px;
+    border-radius: 6px; cursor: pointer;
+  }
+  select.status-select option[value="Yes"]     { color: #16a34a; }
+  select.status-select option[value="No"]      { color: #dc2626; }
+  select.status-select option[value="Pending"] { color: #d97706; }
+  select.status-select option[value="N/A"]     { color: #6b7280; }
+
+  /* ── Site changes ─────────────────────────────────────────────────────── */
+  .changes-table { width: 100%; border-collapse: collapse; }
+  .changes-table thead { display: none; }
+  .changes-table tbody { display: block; }
+  .changes-table tr {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+    align-items: flex-start;
+  }
+  .changes-table tr:last-child { border-bottom: none; }
+  .changes-table td { display: block; border: none; padding: 0; }
+  .changes-table .change-col { flex: 1 1 calc(100% - 52px); min-width: 0; }
+  .changes-table .notes-col  { flex: 0 0 100%; }
+  .changes-table .action-col { flex: 0 0 44px; display: flex; align-items: center; justify-content: center; }
+
+  .owner-checks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .owner-checks label {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.82rem; font-weight: 500; color: #444;
+    text-transform: none; letter-spacing: 0; cursor: pointer;
+    background: #f5f5f5; padding: 5px 10px; border-radius: 6px;
+    transition: background 0.15s; min-height: 36px;
+  }
+  .owner-checks label:hover { background: #ffe4e8; }
+  .owner-checks input[type=checkbox] { width: auto; cursor: pointer; }
+
+  /* ── Image upload ─────────────────────────────────────────────────────── */
+  .image-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .image-slot {
+    border: 2px dashed #ddd; border-radius: 10px; padding: 12px;
+    text-align: center; transition: border-color 0.2s;
+  }
+  .image-slot:active { border-color: #e94560; }
+  .image-slot .preview {
+    width: 100%; height: 110px; object-fit: cover; border-radius: 6px;
+    margin-bottom: 8px; display: none;
+  }
+  .image-slot .placeholder {
+    height: 110px; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; color: #aaa; font-size: 0.8rem; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .image-slot .placeholder svg { width: 36px; height: 36px; }
+  .image-slot input[type=file] { display: none; }
+  .upload-btn {
+    display: inline-block; padding: 8px 14px; background: #f0f0f0;
+    border-radius: 6px; font-size: 0.82rem; cursor: pointer; color: #444;
+    font-weight: 600; border: 1px solid #ddd; transition: background 0.15s;
+    margin-bottom: 8px; min-height: 36px;
+  }
+  .remove-img-btn {
+    display: none; background: #fee2e2; color: #dc2626; border: none;
+    border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.78rem;
+    font-weight: 600; margin-bottom: 8px; min-height: 36px;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; padding: 12px 20px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 0.9rem; font-weight: 600;
+    transition: all 0.2s; min-height: 44px; -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary  { background: #e94560; color: white; }
+  .btn-primary:active  { background: #c73451; }
+  .btn-secondary { background: #f0f0f0; color: #444; }
+  .btn-secondary:active { background: #e0e0e0; }
+  .btn-danger   { background: #fee2e2; color: #dc2626; }
+  .btn-danger:active   { background: #fecaca; }
+  .btn-sm { padding: 8px 14px; font-size: 0.82rem; min-height: 38px; }
+
+  /* ── Actions bar ──────────────────────────────────────────────────────── */
+  .actions-bar {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .actions-bar .btn-primary { width: 100%; font-size: 1rem; padding: 15px; }
+  .actions-bar .tower-info { font-size: 0.9rem; color: #555; text-align: center; }
+
+  /* ── Tower tabs ───────────────────────────────────────────────────────── */
+  .tower-tabs {
+    display: flex; gap: 8px; margin-bottom: 16px;
+    overflow-x: auto; padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .tower-tabs::-webkit-scrollbar { display: none; }
+  .tower-tab {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 10px 14px 10px 16px; border-radius: 8px; border: 2px solid #ddd;
+    background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    color: #666; transition: all 0.2s; min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tower-tab.active { border-color: #e94560; background: #e94560; color: white; }
+  .tower-tab .del-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,0.15); color: inherit; cursor: pointer;
+    font-size: 0.72rem; font-weight: 800; line-height: 1;
+    transition: background 0.15s; padding: 0; flex-shrink: 0;
+  }
+
+  .tower-section { display: none; }
+  .tower-section.active { display: block; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  }
+  .badge-yes     { background: #dcfce7; color: #16a34a; }
+  .badge-pending { background: #fef9c3; color: #854d0e; }
+  .badge-no      { background: #fee2e2; color: #dc2626; }
+
+  /* ── Desktop overrides (≥ 640px) ─────────────────────────────────────── */
+  @media (min-width: 640px) {
+    .app-header { padding: 18px 32px; }
+    .app-header h1 { font-size: 1.4rem; }
+    .app-header .logo { width: 40px; height: 40px; }
+
+    .container { padding: 28px 20px 60px; }
+
+    .card-body { padding: 24px; }
+    .card-header { padding: 14px 24px; font-size: 1rem; }
+
+    .form-grid       { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.four  { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .span2 { grid-column: span 2; }
+    .span3 { grid-column: span 3; }
+    .span4 { grid-column: span 4; }
+
+    input[type=text], input[type=date], select, textarea { font-size: 0.9rem; padding: 9px 12px; }
+    select.status-select { font-size: 0.85rem; padding: 7px 10px; }
+
+    /* Restore full checklist table on desktop */
+    .checklist-table thead { display: table-header-group; }
+    .checklist-table tr { display: table-row; padding: 0; border-bottom: none; }
+    .checklist-table td { display: table-cell; padding: 8px 10px; border-bottom: 1px solid #f0f0f0; width: auto !important; }
+    .checklist-table tr:last-child td { border-bottom: none; }
+    .checklist-table .item-col { font-size: 0.88rem; padding-top: 12px; width: 50% !important; font-weight: normal; }
+    .checklist-table .status-col { width: 140px !important; margin-bottom: 0; }
+    .checklist-table .status-col select { max-width: none; }
+    .checklist-table th {
+      background: #f5f5f5; padding: 9px 12px;
+      font-size: 0.78rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 2px solid #e0e0e0; text-align: left;
+    }
+
+    /* Restore full changes table on desktop */
+    .changes-table thead { display: table-header-group; }
+    .changes-table tbody { display: table-row-group; }
+    .changes-table tr { display: table-row; flex-wrap: unset; padding: 0; border-bottom: none; gap: 0; }
+    .changes-table td { display: table-cell; padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+    .changes-table tr:last-child td { border-bottom: none; }
+    .changes-table .change-col { width: 40%; flex: none; }
+    .changes-table .notes-col  { width: auto; flex: none; }
+    .changes-table .action-col { width: 44px; text-align: center; flex: none; }
+    .changes-table th {
+      background: #f5f5f5; padding: 9px 12px;
+      font-size: 0.78rem; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 2px solid #e0e0e0; text-align: left;
+    }
+
+    .image-slots { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .image-slot { padding: 16px; }
+    .image-slot .preview { height: 140px; }
+    .image-slot .placeholder { height: 140px; }
+
+    .actions-bar { flex-direction: row; align-items: center; padding: 20px 24px; }
+    .actions-bar .btn-primary { width: auto; font-size: 0.85rem; padding: 10px 20px; }
+    .actions-bar .tower-info { text-align: left; }
+    .actions-bar::after { content: ''; flex: 1; }
+
+    .tower-tabs { flex-wrap: wrap; overflow-x: unset; }
+    .tower-tab { flex-shrink: unset; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo">D</div>
+  <h1>DBot Site Visit Assessment</h1>
+</div>
+
+<div class="container">
+  <form method="POST" action="/generate" enctype="multipart/form-data" id="reportForm">
+    <input type="hidden" name="tower_count" id="tower_count" value="4">
+
+    <!-- Header Card -->
+    <div class="card">
+      <div class="card-header">Report Header</div>
+      <div class="card-body">
+        <div class="form-grid four">
+          <div>
+            <label>Area</label>
+            <input type="text" name="area" placeholder="e.g. Town Square" value="Town Square">
+          </div>
+          <div>
+            <label>Date</label>
+            <input type="date" name="date" value="2026-04-01">
+          </div>
+          <div>
+            <label>Assessor</label>
+            <input type="text" name="assessor" placeholder="Full name" value="Ali Hashi">
+          </div>
+          <div>
+            <label>Assessor Contact</label>
+            <input type="text" name="assessor_contact" placeholder="Phone number" value="+971542571276">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tower Tabs -->
+    <div class="tower-tabs" id="towerTabs">
+      <button type="button" class="btn btn-secondary btn-sm" id="addTowerBtn">+ Add Tower</button>
+    </div>
+    <input type="hidden" name="active_towers" id="active_towers" value="1,2,3,4">
+
+    <!-- Towers rendered by JavaScript -->
+    <div id="towers-container"></div>
+
+    <div class="actions-bar">
+      <button type="submit" class="btn btn-primary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        Generate PDF
+      </button>
+      <div class="tower-info" id="tower-count-label"><strong>4 towers</strong> in this report</div>
+    </div>
+  </form>
+</div>
+
+<script>
+const CHECKLIST_ITEMS = {{ checklist_items | tojson }};
+const OWNERS = {{ owners | tojson }};
+
+// activeTowers: ordered list of tower IDs currently shown
+let activeTowers = [1, 2, 3, 4];
+
+const defaultNames = {
+  1: 'Zahra Apartments 1A-1',
+  2: 'Zahra Apartments 1B-1',
+  3: 'Zahra Apartments 2A-1',
+  4: 'Zahra Apartments 2B-1',
+};
+
+function makeTowerHTML(idx) {
+  const name = defaultNames[idx] || `Tower ${idx}`;
+  return `
+  <div class="tower-section" id="tower-section-${idx}">
+    <div class="card">
+      <div class="card-header">
+        <span>Tower ${idx}</span>
+        <div class="card-header-actions">
+          <button type="button" onclick="duplicateTower(${idx})" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:0.82rem;font-weight:600;min-height:36px;">⧉ Duplicate</button>
+          <button type="button" onclick="deleteTower(${idx})" style="background:rgba(220,38,38,0.5);border:none;color:white;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:0.82rem;font-weight:600;min-height:36px;">✕ Delete</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="span2">
+            <label>Tower Name</label>
+            <input type="text" name="tower_${idx}_name" value="${name}" placeholder="Tower name">
+          </div>
+        </div>
+
+        <div class="section-title"><span class="num">1</span> Checklist</div>
+        <table class="checklist-table">
+          <thead><tr><th>Item</th><th>Done</th><th>Notes</th></tr></thead>
+          <tbody>
+            ${CHECKLIST_ITEMS.map((item, i) => `
+            <tr>
+              <td class="item-col">${item}</td>
+              <td class="status-col">
+                <select name="tower_${idx}_check_${i}_status" class="status-select">
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                  <option value="Pending">Pending</option>
+                  <option value="N/A">N/A</option>
+                </select>
+              </td>
+              <td><input type="text" name="tower_${idx}_check_${i}_notes" placeholder="Optional notes"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+
+        <div class="section-title"><span class="num">2</span> Docking</div>
+        <div class="form-grid">
+          <div>
+            <label>Elevator Type</label>
+            <select name="tower_${idx}_dock_type">
+              <option value="Service">Service</option>
+              <option value="Resident">Resident</option>
+              <option value="Both">Both</option>
+              <option value="N/A">N/A</option>
+            </select>
+          </div>
+          <div>
+            <label>Notes</label>
+            <input type="text" name="tower_${idx}_dock_notes" placeholder="Additional notes">
+          </div>
+        </div>
+
+        <div class="section-title"><span class="num">3</span> Elevator Specifications</div>
+        <div class="form-grid four">
+          <div>
+            <label>Door Width (cm)</label>
+            <input type="text" name="tower_${idx}_elev_width" placeholder="e.g. 110">
+          </div>
+          <div>
+            <label>Cabin Depth (cm)</label>
+            <input type="text" name="tower_${idx}_elev_depth" placeholder="e.g. 150">
+          </div>
+          <div>
+            <label>Provider / Type</label>
+            <input type="text" name="tower_${idx}_elev_provider" placeholder="e.g. Fujitec">
+          </div>
+          <div>
+            <label>Comments</label>
+            <input type="text" name="tower_${idx}_elev_comments" placeholder="Optional">
+          </div>
+        </div>
+
+        <div class="section-title"><span class="num">4</span> Site Changes Required</div>
+        <table class="changes-table">
+          <thead><tr><th>Change Required</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="changes-body-${idx}">
+            ${[0,1].map(i => `
+            <tr>
+              <td><input type="text" name="tower_${idx}_change_${i}_text" placeholder="Describe change"></td>
+              <td><input type="text" name="tower_${idx}_change_${i}_notes" placeholder="Notes"></td>
+              <td><button type="button" class="btn btn-danger btn-sm" onclick="deleteChangeRow(this, ${idx})">✕</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <input type="hidden" name="tower_${idx}_change_count" id="change-count-${idx}" value="2">
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addChangeRow(${idx})">+ Add Row</button>
+
+        <div class="section-title"><span class="num">5</span> Site Images <span style="font-size:0.75rem;font-weight:400;opacity:0.7">(4 slots)</span></div>
+        <div class="image-slots" id="image-slots-${idx}">
+          ${[0,1,2,3].map(j => makeImageSlot(idx, j)).join('')}
+        </div>
+        <input type="hidden" name="tower_${idx}_img_count" value="4">
+      </div>
+    </div>
+  </div>`;
+}
+
+function makeImageSlot(towerIdx, imgIdx) {
+  return `
+  <div class="image-slot" id="slot-${towerIdx}-${imgIdx}">
+    <img class="preview" id="preview-${towerIdx}-${imgIdx}" src="" alt="">
+    <div class="placeholder" id="placeholder-${towerIdx}-${imgIdx}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>
+      <span>Click to upload</span>
+    </div>
+    <label class="upload-btn" for="file-${towerIdx}-${imgIdx}">Choose Image</label>
+    <button type="button" class="remove-img-btn" id="remove-${towerIdx}-${imgIdx}" onclick="removeImage(${towerIdx}, ${imgIdx})">Remove</button>
+    <input type="file" id="file-${towerIdx}-${imgIdx}" name="tower_${towerIdx}_img_${imgIdx}_file"
+           accept="image/*" onchange="previewImage(this, ${towerIdx}, ${imgIdx})">
+    <input type="text" name="tower_${towerIdx}_img_${imgIdx}_caption" placeholder="What it shows...">
+  </div>`;
+}
+
+function previewImage(input, t, i) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.getElementById(`preview-${t}-${i}`);
+      const ph = document.getElementById(`placeholder-${t}-${i}`);
+      const rm = document.getElementById(`remove-${t}-${i}`);
+      img.src = e.target.result;
+      img.style.display = 'block';
+      ph.style.display = 'none';
+      rm.style.display = 'inline-block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function removeImage(t, i) {
+  const input = document.getElementById(`file-${t}-${i}`);
+  const img = document.getElementById(`preview-${t}-${i}`);
+  const ph = document.getElementById(`placeholder-${t}-${i}`);
+  const rm = document.getElementById(`remove-${t}-${i}`);
+  input.value = '';
+  img.src = '';
+  img.style.display = 'none';
+  ph.style.display = 'flex';
+  rm.style.display = 'none';
+}
+
+
+// ── Change rows ───────────────────────────────────────────────────────────
+
+function addChangeRow(towerIdx) {
+  const tbody = document.getElementById(`changes-body-${towerIdx}`);
+  const count = tbody.querySelectorAll('tr').length;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" name="tower_${towerIdx}_change_${count}_text" placeholder="Describe change"></td>
+    <td><input type="text" name="tower_${towerIdx}_change_${count}_notes" placeholder="Notes"></td>
+    <td><button type="button" class="btn btn-danger btn-sm" onclick="deleteChangeRow(this, ${towerIdx})">✕</button></td>`;
+  tbody.appendChild(tr);
+  renumberChangeRows(towerIdx);
+}
+
+function deleteChangeRow(btn, towerIdx) {
+  btn.closest('tr').remove();
+  renumberChangeRows(towerIdx);
+}
+
+function renumberChangeRows(towerIdx) {
+  const tbody = document.getElementById(`changes-body-${towerIdx}`);
+  tbody.querySelectorAll('tr').forEach((tr, i) => {
+    tr.querySelectorAll('input[name]').forEach(el => {
+      el.name = el.name.replace(/tower_\d+_change_\d+/, `tower_${towerIdx}_change_${i}`);
+    });
+  });
+  document.getElementById(`change-count-${towerIdx}`).value =
+    tbody.querySelectorAll('tr').length;
+}
+
+// ── Duplicate tower ───────────────────────────────────────────────────────
+
+function duplicateTower(sourceIdx) {
+  const newId = Math.max(...activeTowers) + 1;
+
+  // Add the new tower tab + section (with default empty values)
+  activeTowers.push(newId);
+  tabs.insertBefore(makeTab(newId), addBtn);
+  container.insertAdjacentHTML('beforeend', makeTowerHTML(newId));
+
+  const srcSec = document.getElementById(`tower-section-${sourceIdx}`);
+  const dstSec = document.getElementById(`tower-section-${newId}`);
+
+  // ── Match change-row count first ────────────────────────────────────────
+  const srcChangeCount = parseInt(
+    srcSec.querySelector(`[name="tower_${sourceIdx}_change_count"]`).value
+  );
+  // New tower already has 2 rows; add extras so names align before we copy
+  for (let i = 2; i < srcChangeCount; i++) addChangeRow(newId);
+
+  // ── Copy every text/select/textarea by name substitution ─────────────
+  srcSec.querySelectorAll('input[type=text], input[type=date], select, textarea').forEach(src => {
+    if (!src.name) return;
+    const dstName = src.name.replace(
+      new RegExp(`^tower_${sourceIdx}_`), `tower_${newId}_`
+    );
+    const dst = dstSec.querySelector(`[name="${dstName}"]`);
+    if (dst) dst.value = src.value;
+  });
+
+  activateTab(newId);
+  updateCountLabel();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function makeTab(idx) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'tower-tab';
+  btn.dataset.tower = idx;
+  btn.innerHTML = `Tower ${idx} <span class="del-btn" data-del="${idx}" title="Delete tower">✕</span>`;
+  return btn;
+}
+
+function activateTab(idx) {
+  document.querySelectorAll('.tower-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tower-section').forEach(s => s.classList.remove('active'));
+  const tab = document.querySelector(`.tower-tab[data-tower="${idx}"]`);
+  const sec = document.getElementById(`tower-section-${idx}`);
+  if (tab) tab.classList.add('active');
+  if (sec) sec.classList.add('active');
+}
+
+function updateCountLabel() {
+  const n = activeTowers.length;
+  document.getElementById('tower-count-label').innerHTML =
+    `<strong>${n} tower${n !== 1 ? 's' : ''}</strong> in this report`;
+  document.getElementById('active_towers').value = activeTowers.join(',');
+  document.getElementById('tower_count').value = n;
+}
+
+function deleteTower(idx) {
+  if (activeTowers.length <= 1) {
+    alert('At least one tower is required.');
+    return;
+  }
+  // Find position in active list to know which tab to activate next
+  const pos = activeTowers.indexOf(idx);
+  activeTowers = activeTowers.filter(t => t !== idx);
+
+  // Remove tab and section
+  const tab = document.querySelector(`.tower-tab[data-tower="${idx}"]`);
+  if (tab) tab.remove();
+  const sec = document.getElementById(`tower-section-${idx}`);
+  if (sec) sec.remove();
+
+  // Activate the neighbouring tower
+  const nextIdx = activeTowers[Math.min(pos, activeTowers.length - 1)];
+  activateTab(nextIdx);
+  updateCountLabel();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+
+const container = document.getElementById('towers-container');
+const tabs = document.getElementById('towerTabs');
+const addBtn = document.getElementById('addTowerBtn');
+
+for (const i of activeTowers) {
+  tabs.insertBefore(makeTab(i), addBtn);
+  container.insertAdjacentHTML('beforeend', makeTowerHTML(i));
+}
+activateTab(1);
+updateCountLabel();
+
+// ── Tab switching (delegation) ────────────────────────────────────────────
+
+tabs.addEventListener('click', e => {
+  // Delete button inside tab
+  const delBtn = e.target.closest('[data-del]');
+  if (delBtn) {
+    e.stopPropagation();
+    deleteTower(parseInt(delBtn.dataset.del));
+    return;
+  }
+  // Tab itself
+  const tab = e.target.closest('[data-tower]');
+  if (!tab) return;
+  activateTab(parseInt(tab.dataset.tower));
+});
+
+// ── Add tower ─────────────────────────────────────────────────────────────
+
+addBtn.addEventListener('click', () => {
+  const newId = Math.max(...activeTowers) + 1;
+  activeTowers.push(newId);
+  tabs.insertBefore(makeTab(newId), addBtn);
+  container.insertAdjacentHTML('beforeend', makeTowerHTML(newId));
+  activateTab(newId);
+  updateCountLabel();
+});
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+  }
+</script>
+</body>
+</html>

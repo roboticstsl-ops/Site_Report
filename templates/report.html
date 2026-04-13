@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    color: #000;
+    line-height: 1.3;
+  }
+
+  /* ─── HEADER TABLE ─── */
+  .header-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16pt;
+  }
+  .header-table td {
+    border: 1px solid #000;
+    padding: 4pt 7pt;
+    font-size: 10pt;
+  }
+  .header-table .title-cell {
+    font-weight: bold;
+    font-size: 11pt;
+  }
+
+  /* ─── TOWER ─── */
+  .tower {
+    page-break-before: always;
+  }
+  .tower:first-child {
+    page-break-before: avoid;
+  }
+
+  .tower-title {
+    font-size: 13pt;
+    font-weight: bold;
+    margin-bottom: 10pt;
+  }
+
+  /* ─── SECTION LABEL ─── */
+  /* Matches the bold paragraph labels in the outer cell */
+  .section-label {
+    font-size: 12pt;
+    font-weight: bold;
+    margin: 10pt 0 4pt;
+  }
+
+  /* ─── GENERIC TABLE ─── */
+  table.doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    margin-bottom: 2pt;
+  }
+  table.doc-table th,
+  table.doc-table td {
+    border: 1px solid #000;
+    padding: 4pt 7pt;
+    vertical-align: top;
+    text-align: left;
+  }
+  table.doc-table th {
+    font-weight: bold;
+    background: none;
+  }
+
+  /* ─── EXECUTIVE SUMMARY ─── */
+  .summary-box {
+    border: 1px solid #000;
+    padding: 6pt 7pt;
+    min-height: 50pt;
+    font-size: 10pt;
+    white-space: pre-wrap;
+    margin-bottom: 2pt;
+  }
+
+  /* ─── IMAGES TABLE ─── */
+  table.images-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    margin-top: 4pt;
+  }
+  table.images-table td {
+    border: 1px solid #000;
+    padding: 4pt 7pt;
+    width: 50%;
+    vertical-align: top;
+  }
+  .image-cell img {
+    width: 100%;
+    max-height: 150pt;
+    object-fit: cover;
+    display: block;
+    margin-bottom: 4pt;
+  }
+  .image-placeholder {
+    width: 100%;
+    height: 120pt;
+    border: 1px dashed #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 9pt;
+    margin-bottom: 4pt;
+  }
+  .what-it-shows {
+    font-size: 9pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── REPORT HEADER ── -->
+<table class="header-table">
+  <tr>
+    <td class="title-cell" style="width:40%">DBot Site Visit Assessment</td>
+    <td style="width:35%">Area: {{ header.area }}</td>
+    <td style="width:25%">Date: {{ header.date }}</td>
+  </tr>
+  <tr>
+    <td>Assessor</td>
+    <td colspan="2">{{ header.assessor }}</td>
+  </tr>
+  <tr>
+    <td>Assessor contact</td>
+    <td colspan="2">{{ header.assessor_contact }}</td>
+  </tr>
+  <tr>
+    <td>Building contact</td>
+    <td colspan="2">{{ header.building_contact }}</td>
+  </tr>
+</table>
+
+{% for tower in towers %}
+<div class="tower">
+
+  <div class="tower-title">{{ tower.name }}</div>
+
+  <!-- ── Executive Summary ── -->
+  <div class="section-label">Executive Summary</div>
+  <div class="summary-box">{{ tower.executive_summary if tower.executive_summary else '' }}</div>
+
+  <!-- ── Checklist ── -->
+  <div class="section-label">Checklist</div>
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th style="width:58%">Item</th>
+        <th style="width:14%">Done</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in tower.checklist %}
+      <tr>
+        <td>{{ row.item }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ── Docking ── -->
+  <div class="section-label">Docking</div>
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th style="width:33%">Access point</th>
+        <th style="width:33%">Elevator type</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ tower.docking.access_point }}</td>
+        <td>{{ tower.docking.elevator_type }}</td>
+        <td>{{ tower.docking.notes }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Elevator specs table (immediately below docking, no label — matches original) -->
+  <table class="doc-table" style="margin-top:0; border-top:none">
+    <thead>
+      <tr>
+        <th style="width:25%">Elevator Door width</th>
+        <th style="width:25%">Elevator Cabin depth</th>
+        <th style="width:25%">Provider/type</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ tower.elevator.door_width }}{% if tower.elevator.door_width %}cm{% endif %}</td>
+        <td>{{ tower.elevator.cabin_depth }}{% if tower.elevator.cabin_depth %}cm{% endif %}</td>
+        <td>{{ tower.elevator.provider }}</td>
+        <td>{{ tower.elevator.comments }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Site Changes ── -->
+  <div class="section-label">Site changes required (to be ready):</div>
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th style="width:35%">Change</th>
+        <th style="width:40%">Owner</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if tower.site_changes %}
+        {% for change in tower.site_changes %}
+        <tr>
+          <td>{{ change.change }}</td>
+          <td>
+            {% for o in owners %}
+              {% if o in change.owners %}&#9746;{% else %}&#9744;{% endif %} {{ o }}{% if not loop.last %}  {% endif %}
+            {% endfor %}
+          </td>
+          <td>{{ change.notes }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td></td>
+          <td>&#9744; Building  &#9744; Client  &#9744; TII  &#9744; Vendor  &#9744; TBD</td>
+          <td></td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <!-- ── Site Images ── -->
+  <div class="section-label">Site Images</div>
+  {% if tower.images %}
+    {% set ns = namespace(i=0) %}
+    <table class="images-table">
+      {% for pair_start in range(0, tower.images|length, 2) %}
+      <tr>
+        {% for img in tower.images[pair_start:pair_start+2] %}
+        <td class="image-cell">
+          {% if img.data_uri %}
+            <img src="{{ img.data_uri }}" alt="">
+          {% else %}
+            <div class="image-placeholder">No image uploaded</div>
+          {% endif %}
+          <div class="what-it-shows">What it shows: {{ img.caption if img.caption else '' }}</div>
+        </td>
+        {% endfor %}
+        {# Pad with empty cell if odd number of images #}
+        {% if tower.images[pair_start:pair_start+2]|length == 1 %}
+        <td></td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <table class="images-table">
+      <tr>
+        <td class="image-cell">
+          <div class="image-placeholder">No image uploaded</div>
+          <div class="what-it-shows">What it shows: </div>
+        </td>
+        <td class="image-cell">
+          <div class="image-placeholder">No image uploaded</div>
+          <div class="what-it-shows">What it shows: </div>
+        </td>
+      </tr>
+    </table>
+  {% endif %}
+
+</div>
+{% endfor %}
+
+</body>
+</html>
